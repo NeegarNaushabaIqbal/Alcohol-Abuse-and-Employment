@@ -1,0 +1,186 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(readr)
+library(ggplot2)
+library(ggpubr)
+library(zoo)
+library(tidyr)
+library(purrr)
+library(MASS)
+library(tidyverse)
+library(lubridate)
+library(viridis)
+library(reshape2)
+library(ggdendro)
+library(plm)
+library(sandwich)
+library(lmtest)
+library(clubSandwich)
+```
+
+```{r}
+install.packages("wooldridge")
+library(wooldridge)
+```
+
+```{r}
+data("alcohol")
+```
+
+```{r}
+alcohol
+```
+
+```{r}
+num_employed <- nrow(alcohol[alcohol$employ == 1, ])
+frac_employed <- num_employed / nrow(alcohol)
+num_employed
+frac_employed
+```
+
+```{r}
+num_abuse <- nrow(alcohol[alcohol$abuse == 1, ])
+frac_abuse <- num_abuse / nrow(alcohol)
+num_abuse 
+frac_abuse
+```
+
+```{r}
+# Fit the simple regression
+reg <- lm(employ ~ abuse, data = alcohol)
+
+# Obtain heteroskedasticity-robust standard errors
+robust_se <- coeftest(reg, vcov = vcovHC(reg, type = "HC1"))
+
+robust_se
+```
+
+```{r}
+probit_model <- glm(employ ~ abuse, data = alcohol, family = binomial(link = "probit"))
+
+# Summary
+summary(probit_model)
+```
+
+```{r}
+install.packages("margins")
+```
+
+```{r}
+library(margins)
+
+ape <- margins(probit_model)
+summary(ape)
+```
+
+```{r}
+logit_model <- glm(employ ~ abuse, data = alcohol, family = binomial(link = "logit"))
+
+# Summary of coefficients
+summary(logit_model)
+```
+
+```{r}
+logit_ame <- margins(logit_model)
+summary(logit_ame)
+```
+
+```{r}
+# Fit probit model
+probit_model_robust <- glm(employ ~ abuse, data = alcohol, family = binomial(link = "probit"))
+
+# Robust standard errors (HC1)
+probit_robust <- coeftest(probit_model_robust, vcov = vcovHC(probit_model_robust, type = "HC1"))
+
+probit_robust
+```
+
+```{r}
+probit_ame_robust <- margins(probit_model_robust, vcov = vcovHC(probit_model_robust, type = "HC1"))
+summary(probit_ame_robust)
+```
+
+```{r}
+logit_model_robust <- glm(employ ~ abuse, data = alcohol, family = binomial(link = "logit"))
+
+# Robust standard errors
+logit_robust <- coeftest(logit_model_robust, vcov = vcovHC(logit_model_robust, type = "HC1"))
+
+logit_robust
+```
+
+```{r}
+logit_ame_robust <- margins(logit_model_robust, vcov = vcovHC(logit_model_robust, type = "HC1"))
+summary(logit_ame_robust)
+```
+
+```{r}
+b0 <- 1.2872   # intercept
+b1 <- -0.1480  # slope for abuse
+
+# Compute fitted probabilities using the normal CDF
+p_abuse0 <- pnorm(b0 + b1 * 0)   # when abuse = 0
+p_abuse1 <- pnorm(b0 + b1 * 1)   # when abuse = 1
+
+p_abuse0
+p_abuse1
+```
+
+```{r}
+lpm_extended <- lm(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+                     white + northeast + midwest + south + centcity + outercity +
+                     qrt1 + qrt2 + qrt3, 
+                   data = alcohol)
+
+coeftest(lpm_extended, vcov = vcovHC(lpm_extended, type = "HC1"))
+```
+
+```{r}
+probit_extended <- glm(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+                         white + northeast + midwest + south + centcity + outercity +
+                         qrt1 + qrt2 + qrt3,
+                       family = binomial(link = "probit"),
+                       data = alcohol)
+```
+
+```{r}
+summary(probit_extended)
+```
+
+```{r}
+# Compute heteroskedasticity-robust standard errors
+vcov_robust <- vcovHC(probit_extended, type = "HC1")
+
+# Compute Average Marginal Effects (AMEs) with robust SEs
+margins_probit <- margins(probit_extended, vcov = vcov_robust)
+summary(margins_probit)
+```
+
+```{r}
+install.packages("AER")
+```
+
+```{r}
+library(AER)
+```
+
+```{r}
+# 2SLS / IV regression: LPM
+iv_lpm <- ivreg(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3
+                | mothalc + fathalc + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3, 
+                data = alcohol)
+
+coeftest(iv_lpm, vcov = vcovHC(iv_lpm, type = "HC1"))
+```
+
+```{r}
+summary(iv_lpm, diagnostics = TRUE)
+```
