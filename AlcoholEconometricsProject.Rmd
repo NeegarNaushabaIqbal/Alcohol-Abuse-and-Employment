@@ -366,3 +366,21 @@ ggplot(alcohol, aes(x = parent_status)) +
        x = "Parental Status",
        y = "Count")
 ```
+
+```{r}
+# Proxy for "complier-like" based on instrument strength
+alcohol$instrument_strength <- with(alcohol, mothalc + fathalc) 
+
+alcohol_1  <- alcohol %>% group_by(instrument_strength, abuse) %>% summarise( n = n(), mean_employ = mean(employ) ) %>% tidyr::pivot_wider(names_from = abuse, values_from = c(n, mean_employ), names_sep = "_")
+```
+
+```{r}
+p_compliers <- 0.005
+late <- -0.32
+ate <- -0.19
+
+# ATE = p_compliers × LATE + (1 - p_compliers) × Effect_others
+# -0.19 = 0.005 × (-0.32) + 0.995 × Effect_others
+effect_others <- (-0.19 - 0.005 * (-0.32)) / 0.995
+cat("Implied effect for non-compliers:", effect_others, "\n")
+```
