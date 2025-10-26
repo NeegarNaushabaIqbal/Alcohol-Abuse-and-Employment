@@ -1,0 +1,312 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(readr)
+library(ggplot2)
+library(ggpubr)
+library(zoo)
+library(tidyr)
+library(purrr)
+library(MASS)
+library(tidyverse)
+library(lubridate)
+library(viridis)
+library(reshape2)
+library(ggdendro)
+library(plm)
+library(sandwich)
+library(lmtest)
+library(clubSandwich)
+```
+
+```{r}
+install.packages("wooldridge")
+library(wooldridge)
+```
+
+```{r}
+data("alcohol")
+```
+
+```{r}
+alcohol
+```
+
+```{r}
+lpm_extended_1 <- lm(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+                     white + northeast + midwest + south + centcity + outercity +
+                     qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth, 
+                   data = alcohol)
+
+coeftest(lpm_extended_1, vcov = vcovHC(lpm_extended_1, type = "HC1"))
+```
+
+```{r}
+probit_extended_1 <- glm(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+                         white + northeast + midwest + south + centcity + outercity +
+                         qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth,
+                       family = binomial(link = "probit"),
+                       data = alcohol)
+
+summary(probit_extended_1)
+```
+
+```{r}
+library(margins)
+```
+
+```{r}
+# Compute heteroskedasticity-robust standard errors
+vcov_robust_1 <- vcovHC(probit_extended_1, type = "HC1")
+
+# Compute Average Marginal Effects (AMEs) with robust SEs
+margins_probit_1 <- margins(probit_extended_1, vcov = vcov_robust_1)
+summary(margins_probit_1)
+```
+
+```{r}
+library(AER)
+```
+
+```{r}
+# 2SLS / IV regression: LPM
+iv_lpm_1 <- ivreg(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth
+                | mothalc + fathalc + livealc + beertax + cigtax + ethanol + beertaxsq + cigtaxsq + ethanolsq + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth, 
+                data = alcohol)
+
+coeftest(iv_lpm_1, vcov = vcovHC(iv_lpm_1, type = "HC1"))
+```
+
+```{r}
+summary(iv_lpm_1, diagnostics = TRUE)
+```
+
+```{r}
+iv_lpm_2 <- ivreg(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth
+                | mothalc + fathalc + livealc + beertax + ethanol + beertaxsq + ethanolsq + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth, 
+                data = alcohol)
+
+coeftest(iv_lpm_2, vcov = vcovHC(iv_lpm_2, type = "HC1"))
+```
+
+```{r}
+summary(iv_lpm_2, diagnostics = TRUE)
+```
+
+```{r}
+iv_lpm_3 <- ivreg(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth
+                | mothalc + fathalc + livealc + beertax + beertaxsq + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth, 
+                data = alcohol)
+
+coeftest(iv_lpm_3, vcov = vcovHC(iv_lpm_3, type = "HC1"))
+```
+
+```{r}
+summary(iv_lpm_3, diagnostics = TRUE)
+```
+
+```{r}
+iv_lpm_4 <- ivreg(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth
+                | mothalc + fathalc + livealc + beertax + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth, 
+                data = alcohol)
+
+coeftest(iv_lpm_4, vcov = vcovHC(iv_lpm_4, type = "HC1"))
+```
+
+```{r}
+summary(iv_lpm_4, diagnostics = TRUE)
+```
+
+```{r}
+iv_lpm_5 <- ivreg(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth
+                | mothalc + fathalc + livealc + beertax + ethanol + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth, 
+                data = alcohol)
+
+coeftest(iv_lpm_5, vcov = vcovHC(iv_lpm_5, type = "HC1"))
+```
+
+```{r}
+summary(iv_lpm_5, diagnostics = TRUE)
+```
+
+```{r}
+iv_lpm_6 <- ivreg(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth
+                | mothalc + fathalc + livealc + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth, 
+                data = alcohol)
+
+coeftest(iv_lpm_6, vcov = vcovHC(iv_lpm_6, type = "HC1"))
+```
+
+```{r}
+summary(iv_lpm_6, diagnostics = TRUE)
+```
+
+```{r}
+iv_lpm_7 <- ivreg(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth
+                | mothalc + fathalc + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth, 
+                data = alcohol)
+
+coeftest(iv_lpm_7, vcov = vcovHC(iv_lpm_7, type = "HC1"))
+```
+
+```{r}
+summary(iv_lpm_7, diagnostics = TRUE)
+```
+
+```{r}
+iv_lpm_8 <- ivreg(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth
+                | livealc + beertax + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth, 
+                data = alcohol)
+
+coeftest(iv_lpm_8, vcov = vcovHC(iv_lpm_8, type = "HC1"))
+```
+
+```{r}
+summary(iv_lpm_8, diagnostics = TRUE)
+```
+
+```{r}
+iv_lpm_9 <- ivreg(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth
+                | livealc + beertax + ethanol + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth, 
+                data = alcohol)
+
+coeftest(iv_lpm_9, vcov = vcovHC(iv_lpm_9, type = "HC1"))
+```
+
+```{r}
+summary(iv_lpm_9, diagnostics = TRUE)
+```
+
+```{r}
+iv_lpm_10 <- ivreg(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth
+                | beertax + ethanol + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth, 
+                data = alcohol)
+
+coeftest(iv_lpm_10, vcov = vcovHC(iv_lpm_10, type = "HC1"))
+```
+
+```{r}
+summary(iv_lpm_10, diagnostics = TRUE)
+```
+
+```{r}
+iv_lpm_11 <- ivreg(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth
+                | livealc + ethanol + age + agesq + educ + educsq + married + famsize +
+                  white + northeast + midwest + south + centcity + outercity +
+                  qrt1 + qrt2 + qrt3 + unemrate + exhealth + vghealth + goodhealth + fairhealth, 
+                data = alcohol)
+
+coeftest(iv_lpm_11, vcov = vcovHC(iv_lpm_11, type = "HC1"))
+```
+
+```{r}
+summary(iv_lpm_11, diagnostics = TRUE)
+```
+
+```{r}
+# iv_lpm_7 is final. mothalc and fathalc main instruments
+# Need to discuss iv_lpm_11, iv_lpm_9, and iv_lpm_8
+```
+
+```{r}
+library(GJRM)
+```
+
+```{r}
+f1_1 <- employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+  white + northeast + midwest + south + centcity + outercity +
+  qrt1 + qrt2 + qrt3 + unemrate + exhealth + 
+    vghealth + goodhealth + fairhealth
+
+f2_1 <- abuse ~ mothalc + fathalc + age + agesq + educ + educsq + married +
+  famsize + white + northeast + midwest + south + centcity + outercity +
+  qrt1 + qrt2 + qrt3 + unemrate + exhealth + 
+    vghealth + goodhealth + fairhealth
+
+biv_probit_1 <- gjrm(list(f1_1, f2_1), data = alcohol, margins = c("probit", "probit"), model = "B")
+summary(biv_probit_1)
+```
+
+```{r}
+set.seed(123)
+ape_boot_1 <- ATE(x = biv_probit_1, trt = "abuse", eq = 1, n.sim = 10000)
+ape_boot_1
+```
+
+```{r}
+iv_lpm_compressed <- ivreg(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+                  white + unemrate + exhealth + vghealth + goodhealth + fairhealth
+                | mothalc + fathalc + age + agesq + educ + educsq + married + famsize +
+                  white + unemrate + exhealth + vghealth + goodhealth + fairhealth, 
+                data = alcohol)
+
+coeftest(iv_lpm_compressed, vcov = vcovHC(iv_lpm_compressed, type = "HC1"))
+```
+
+```{r}
+summary(iv_lpm_compressed, diagnostics = TRUE)
+```
+
+```{r}
+f1_2 <- employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+  white + unemrate + exhealth + 
+    vghealth + goodhealth + fairhealth
+
+f2_2 <- abuse ~ mothalc + fathalc + age + agesq + educ + educsq + married +
+  famsize + white + unemrate + exhealth + 
+    vghealth + goodhealth + fairhealth
+
+biv_probit_2 <- gjrm(list(f1_2, f2_2), data = alcohol, margins = c("probit", "probit"), model = "B")
+summary(biv_probit_2)
+```
+
+```{r}
+set.seed(123)
+ape_boot_2 <- ATE(x = biv_probit_2, trt = "abuse", eq = 1, n.sim = 10000)
+ape_boot_2
+```
