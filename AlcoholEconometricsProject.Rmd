@@ -218,9 +218,9 @@ packageVersion("GJRM")
 ```
 
 ```{r}
-first_stage <- lm(abuse ~ mothalc + fathalc + age + agesq + educ + educsq + married +
+first_stage <- glm(abuse ~ mothalc + fathalc + age + agesq + educ + educsq + married +
                     famsize + white + northeast + midwest + south + centcity + outercity +
-                    qrt1 + qrt2 + qrt3, data = alcohol)
+                    qrt1 + qrt2 + qrt3, family = binomial(link = "probit"), data = alcohol)
 alcohol$residuals_abuse <- resid(first_stage)
 ```
 
@@ -239,33 +239,33 @@ summary(ape_2sri)
 ```
 
 ```{r}
-set.seed(123)
-n_boot <- 1000
-boot_coefs <- replicate(n_boot, {
-  # sample indices with replacement
-  ids <- sample(1:nrow(alcohol), replace = TRUE)
-  dat_boot <- alcohol[ids, ]
-  
-  # first stage
-  fs <- lm(abuse ~ mothalc + fathalc + age + agesq + educ + educsq + married +
-             famsize + white + northeast + midwest + south + centcity + outercity +
-             qrt1 + qrt2 + qrt3, data = dat_boot)
-  dat_boot$residuals_abuse <- resid(fs)
-  
-  # second stage
-  ss <- glm(employ ~ abuse + residuals_abuse + age + agesq + educ + educsq +
-              married + famsize + white + northeast + midwest + south +
-              centcity + outercity + qrt1 + qrt2 + qrt3,
-            family = binomial(link = "probit"),
-            data = dat_boot)
-  
-  coef(ss)["abuse"]
-})
-
-# bootstrap standard error
-sd(boot_coefs)
-# bootstrap 95% CI
-quantile(boot_coefs, c(0.025, 0.975))
+# set.seed(123)
+# n_boot <- 1000
+# boot_coefs <- replicate(n_boot, {
+#   # sample indices with replacement
+#   ids <- sample(1:nrow(alcohol), replace = TRUE)
+#   dat_boot <- alcohol[ids, ]
+#   
+#   # first stage
+#   fs <- lm(abuse ~ mothalc + fathalc + age + agesq + educ + educsq + married +
+#              famsize + white + northeast + midwest + south + centcity + outercity +
+#              qrt1 + qrt2 + qrt3, data = dat_boot)
+#   dat_boot$residuals_abuse <- resid(fs)
+#   
+#   # second stage
+#   ss <- glm(employ ~ abuse + residuals_abuse + age + agesq + educ + educsq +
+#               married + famsize + white + northeast + midwest + south +
+#               centcity + outercity + qrt1 + qrt2 + qrt3,
+#             family = binomial(link = "probit"),
+#             data = dat_boot)
+#   
+#   coef(ss)["abuse"]
+# })
+# 
+# # bootstrap standard error
+# sd(boot_coefs)
+# # bootstrap 95% CI
+# quantile(boot_coefs, c(0.025, 0.975))
 ```
 
 ```{r}
@@ -286,9 +286,9 @@ boot_fun <- function(i) {
   ids <- sample(1:nrow(alcohol), replace = TRUE)
   dat_boot <- alcohol[ids, ]
   
-  fs <- lm(abuse ~ mothalc + fathalc + age + agesq + educ + educsq + married +
+  fs <- glm(abuse ~ mothalc + fathalc + age + agesq + educ + educsq + married +
            famsize + white + northeast + midwest + south + centcity + outercity +
-           qrt1 + qrt2 + qrt3, data = dat_boot)
+           qrt1 + qrt2 + qrt3, family = binomial(link = "probit"), data = dat_boot)
   dat_boot$residuals_abuse <- resid(fs)
   
   ss <- glm(employ ~ abuse + residuals_abuse + age + agesq + educ + educsq +
@@ -315,40 +315,40 @@ cat("Bootstrap 95% CI:", quantile(boot_ape, c(0.025, 0.975)), "\n")
 ```
 
 ```{r}
-first_stage_full <- lm(abuse ~ mothalc + fathalc + age + agesq + 
-                       educ + educsq + married + famsize + white + 
-                       northeast + midwest + south + centcity + 
-                       outercity + qrt1 + qrt2 + qrt3, 
-                       data = alcohol)
-
-first_stage_restricted <- lm(abuse ~ age + agesq + educ + educsq + 
-                             married + famsize + white + northeast + 
-                             midwest + south + centcity + outercity + 
-                             qrt1 + qrt2 + qrt3, 
-                             data = alcohol)
-
-# Partial R² of instruments
-r2_full <- summary(first_stage_full)$r.squared
-r2_restricted <- summary(first_stage_restricted)$r.squared
-partial_r2 <- r2_full - r2_restricted
-
-cat("Partial R² of instruments:", partial_r2, "\n")
+# first_stage_full <- lm(abuse ~ mothalc + fathalc + age + agesq + 
+#                        educ + educsq + married + famsize + white + 
+#                        northeast + midwest + south + centcity + 
+#                        outercity + qrt1 + qrt2 + qrt3, 
+#                        data = alcohol)
+# 
+# first_stage_restricted <- lm(abuse ~ age + agesq + educ + educsq + 
+#                              married + famsize + white + northeast + 
+#                              midwest + south + centcity + outercity + 
+#                              qrt1 + qrt2 + qrt3, 
+#                              data = alcohol)
+# 
+# # Partial R² of instruments
+# r2_full <- summary(first_stage_full)$r.squared
+# r2_restricted <- summary(first_stage_restricted)$r.squared
+# partial_r2 <- r2_full - r2_restricted
+# 
+# cat("Partial R² of instruments:", partial_r2, "\n")
 
 ```
 
 ```{r}
-ape_margins <- summary(margins(second_stage, variables = "abuse"))$AME
-
-# Method 2: Manual calculation - FAST
-beta_abuse <- coef(second_stage)["abuse"]
-linear_pred <- predict(second_stage, type = "link")
-avg_density <- mean(dnorm(linear_pred))
-ape_manual <- beta_abuse * avg_density
-
-# Compare
-cat("APE from margins():", ape_margins, "\n")
-cat("APE manual:", ape_manual, "\n")
-cat("Difference:", abs(ape_margins - ape_manual), "\n")
+# ape_margins <- summary(margins(second_stage, variables = "abuse"))$AME
+# 
+# # Method 2: Manual calculation - FAST
+# beta_abuse <- coef(second_stage)["abuse"]
+# linear_pred <- predict(second_stage, type = "link")
+# avg_density <- mean(dnorm(linear_pred))
+# ape_manual <- beta_abuse * avg_density
+# 
+# # Compare
+# cat("APE from margins():", ape_margins, "\n")
+# cat("APE manual:", ape_manual, "\n")
+# cat("Difference:", abs(ape_margins - ape_manual), "\n")
 ```
 
 ```{r}
