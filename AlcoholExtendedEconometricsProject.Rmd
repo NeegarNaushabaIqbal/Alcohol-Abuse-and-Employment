@@ -279,16 +279,14 @@ ape_boot_1
 ```
 
 ```{r}
-lpm_extended_2 <- lm(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
-                     white + unemrate + exhealth + vghealth + goodhealth + fairhealth, 
+lpm_extended_2 <- lm(employ ~ abuse + age + agesq + educ + educsq + married + famsize + white + unemrate + exhealth + vghealth + goodhealth + fairhealth, 
                    data = alcohol)
 
 coeftest(lpm_extended_2, vcov = vcovHC(lpm_extended_2, type = "HC1"))
 ```
 
 ```{r}
-probit_extended_2 <- glm(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
-                         white + unemrate + exhealth + vghealth + goodhealth + fairhealth,
+probit_extended_2 <- glm(employ ~ abuse + age + agesq + educ + educsq + married + famsize + white + unemrate + exhealth + vghealth + goodhealth + fairhealth,
                        family = binomial(link = "probit"),
                        data = alcohol)
 
@@ -305,10 +303,8 @@ summary(margins_probit_2)
 ```
 
 ```{r}
-iv_lpm_compressed <- ivreg(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
-                  white + unemrate + exhealth + vghealth + goodhealth + fairhealth
-                | mothalc + fathalc + age + agesq + educ + educsq + married + famsize +
-                  white + unemrate + exhealth + vghealth + goodhealth + fairhealth, 
+iv_lpm_compressed <- ivreg(employ ~ abuse + age + agesq + educ + educsq + married + famsize + white + unemrate + exhealth + vghealth + goodhealth + fairhealth
+                | mothalc + fathalc + age + agesq + educ + educsq + married + famsize + white + unemrate + exhealth + vghealth + goodhealth + fairhealth, 
                 data = alcohol)
 
 coeftest(iv_lpm_compressed, vcov = vcovHC(iv_lpm_compressed, type = "HC1"))
@@ -327,7 +323,7 @@ library(robomit)
 ```
 
 ```{r}
-f1_2 <- employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+f1_2 <- employ ~ abuse + age + agesq + educ + educsq + married + famsize + 
   white + unemrate + exhealth + 
     vghealth + goodhealth + fairhealth
 
@@ -418,38 +414,38 @@ cat("Bootstrap 95% CI:", quantile(boot_ape, c(0.025, 0.975)), "\n")
 ```
 
 ```{r}
-# Few people are affected by instruments
-first_stage_full_2 <- lm(abuse ~ mothalc + fathalc + age + agesq + 
-                       educ + educsq + married + famsize + white + unemrate + exhealth + 
-    vghealth + goodhealth + fairhealth, 
-                       data = alcohol)
-
-first_stage_restricted_2 <- lm(abuse ~ age + agesq + educ + educsq + 
-                             married + famsize + white + unemrate + exhealth + 
-    vghealth + goodhealth + fairhealth, 
-                             data = alcohol)
-
-# Partial R² of instruments
-r2_full_2 <- summary(first_stage_full_2)$r.squared
-r2_restricted_2 <- summary(first_stage_restricted_2)$r.squared
-partial_r2_2 <- r2_full_2 - r2_restricted_2
-
-cat("Partial R² of instruments:", partial_r2_2, "\n")
+# # Few people are affected by instruments
+# first_stage_full_2 <- lm(abuse ~ mothalc + fathalc + age + agesq + 
+#                        educ + educsq + married + famsize + white + unemrate + exhealth + 
+#     vghealth + goodhealth + fairhealth, 
+#                        data = alcohol)
+# 
+# first_stage_restricted_2 <- lm(abuse ~ age + agesq + educ + educsq + 
+#                              married + famsize + white + unemrate + exhealth + 
+#     vghealth + goodhealth + fairhealth, 
+#                              data = alcohol)
+# 
+# # Partial R² of instruments
+# r2_full_2 <- summary(first_stage_full_2)$r.squared
+# r2_restricted_2 <- summary(first_stage_restricted_2)$r.squared
+# partial_r2_2 <- r2_full_2 - r2_restricted_2
+# 
+# cat("Partial R² of instruments:", partial_r2_2, "\n")
 ```
 
 ```{r}
-ape_margins_2 <- summary(margins(second_stage_2, variables = "abuse"))$AME
-
-# Method 2: Manual calculation - FAST
-beta_abuse_2 <- coef(second_stage_2)["abuse"]
-linear_pred_2 <- predict(second_stage_2, type = "link")
-avg_density_2 <- mean(dnorm(linear_pred_2))
-ape_manual_2 <- beta_abuse_2 * avg_density_2
-
-# Compare
-cat("APE from margins():", ape_margins_2, "\n")
-cat("APE manual:", ape_manual_2, "\n")
-cat("Difference:", abs(ape_margins_2 - ape_manual_2), "\n")
+# ape_margins_2 <- summary(margins(second_stage_2, variables = "abuse"))$AME
+# 
+# # Method 2: Manual calculation - FAST
+# beta_abuse_2 <- coef(second_stage_2)["abuse"]
+# linear_pred_2 <- predict(second_stage_2, type = "link")
+# avg_density_2 <- mean(dnorm(linear_pred_2))
+# ape_manual_2 <- beta_abuse_2 * avg_density_2
+# 
+# # Compare
+# cat("APE from margins():", ape_margins_2, "\n")
+# cat("APE manual:", ape_manual_2, "\n")
+# cat("Difference:", abs(ape_margins_2 - ape_manual_2), "\n")
 ```
 
 ```{r}
@@ -457,4 +453,54 @@ cat("Difference:", abs(ape_margins_2 - ape_manual_2), "\n")
 alcohol$instrument_strength <- with(alcohol, mothalc + fathalc) 
 
 alcohol_2  <- alcohol %>% group_by(instrument_strength, abuse) %>% summarise( n = n(), mean_employ = mean(employ) ) %>% tidyr::pivot_wider(names_from = abuse, values_from = c(n, mean_employ), names_sep = "_")
+```
+
+```{r}
+parent_alc_lpm <- lm(abuse ~ mothalc + fathalc + age + agesq + educ + educsq +
+                    married + famsize + white + unemrate + exhealth + vghealth +
+                    goodhealth + fairhealth, data = alcohol)
+```
+
+```{r}
+coeftest(parent_alc_lpm, vcov = vcovHC(parent_alc_lpm, type = "HC1"))
+```
+
+```{r}
+probit_extended <- glm(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+                         white + northeast + midwest + south + centcity + outercity +
+                         qrt1 + qrt2 + qrt3,
+                       family = binomial(link = "probit"),
+                       data = alcohol)
+```
+
+```{r}
+summary(probit_extended)
+```
+
+```{r}
+# Compute heteroskedasticity-robust standard errors
+vcov_robust <- vcovHC(probit_extended, type = "HC1")
+
+# Compute Average Marginal Effects (AMEs) with robust SEs
+margins_probit <- margins(probit_extended, vcov = vcov_robust)
+summary(margins_probit)
+```
+
+```{r}
+AIC(probit_extended, probit_extended_1, probit_extended_2)
+BIC(probit_extended, probit_extended_1, probit_extended_2)
+```
+
+```{r}
+lpm_extended <- lm(employ ~ abuse + age + agesq + educ + educsq + married + famsize +
+                     white + northeast + midwest + south + centcity + outercity +
+                     qrt1 + qrt2 + qrt3, 
+                   data = alcohol)
+
+coeftest(lpm_extended, vcov = vcovHC(lpm_extended, type = "HC1"))
+```
+
+```{r}
+AIC(lpm_extended, lpm_extended_1, lpm_extended_2)
+BIC(lpm_extended, lpm_extended_1, lpm_extended_2)
 ```
