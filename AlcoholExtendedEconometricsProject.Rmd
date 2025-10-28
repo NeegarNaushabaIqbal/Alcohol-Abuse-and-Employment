@@ -342,9 +342,10 @@ ape_boot_2
 ```
 
 ```{r}
-first_stage_2 <- lm(abuse ~ mothalc + fathalc + age + agesq + educ + educsq + married +
+first_stage_2 <- glm(abuse ~ mothalc + fathalc + age + agesq + educ + educsq + married +
                     famsize + white + unemrate + exhealth + 
-    vghealth + goodhealth + fairhealth, data = alcohol)
+    vghealth + goodhealth + fairhealth, family = binomial(link = "probit"),
+    data = alcohol)
 
 alcohol$residuals_abuse <- resid(first_stage_2)
 ```
@@ -379,9 +380,9 @@ boot_fun <- function(i) {
   ids <- sample(1:nrow(alcohol), replace = TRUE)
   dat_boot <- alcohol[ids, ]
   
-  fs <- lm(abuse ~ mothalc + fathalc + age + agesq + educ + educsq + married +
+  fs <- glm(abuse ~ mothalc + fathalc + age + agesq + educ + educsq + married +
            famsize + white + unemrate + exhealth + 
-    vghealth + goodhealth + fairhealth, data = dat_boot)
+    vghealth + goodhealth + fairhealth, family = binomial(link = "probit"), data = dat_boot)
   dat_boot$residuals_abuse <- resid(fs)
   
   ss <- glm(employ ~ abuse + residuals_abuse + age + agesq + educ + educsq +
