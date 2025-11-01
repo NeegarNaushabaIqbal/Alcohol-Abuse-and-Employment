@@ -505,3 +505,66 @@ coeftest(lpm_extended, vcov = vcovHC(lpm_extended, type = "HC1"))
 AIC(lpm_extended, lpm_extended_1, lpm_extended_2)
 BIC(lpm_extended, lpm_extended_1, lpm_extended_2)
 ```
+
+```{r}
+first_stage_2_1 <- lm(abuse ~ mothalc + fathalc + age + agesq + educ + educsq + married +
+                    famsize + white + unemrate + exhealth + 
+    vghealth + goodhealth + fairhealth,
+    data = alcohol)
+
+alcohol$residuals_abuse_1 <- resid(first_stage_2_1)
+```
+
+```{r}
+second_stage_2_1 <- glm(employ ~ abuse + residuals_abuse_1 + age + agesq + educ + educsq +
+                      married + famsize + white + unemrate + exhealth + 
+    vghealth + goodhealth + fairhealth,
+                    family = binomial(link = "probit"),
+                    data = alcohol)
+summary(second_stage_2_1)
+```
+
+```{r}
+ape_2sri_2_1 <- margins(second_stage_2_1, variables = "abuse")
+summary(ape_2sri_2_1)
+```
+
+```{r}
+set.seed(123)
+n_boot <- 10000
+n_cores <- detectCores() - 1
+
+cl <- makeCluster(n_cores)
+clusterExport(cl, c("alcohol"))
+
+boot_fun <- function(i) {
+  ids <- sample(1:nrow(alcohol), replace = TRUE)
+  dat_boot <- alcohol[ids, ]
+  
+  fs <- lm(abuse ~ mothalc + fathalc + age + agesq + educ + educsq + married +
+           famsize + white + unemrate + exhealth + 
+    vghealth + goodhealth + fairhealth, data = dat_boot)
+  dat_boot$residuals_abuse <- resid(fs)
+  
+  ss <- glm(employ ~ abuse + residuals_abuse + age + agesq + educ + educsq +
+            married + famsize + white + unemrate + exhealth + 
+    vghealth + goodhealth + fairhealth,
+            family = binomial(link = "probit"),
+            data = dat_boot)
+  
+  # Manual marginal effect
+  beta_abuse <- coef(ss)["abuse"]
+  linear_pred <- predict(ss, type = "link")
+  avg_density <- mean(dnorm(linear_pred))
+  
+  return(beta_abuse * avg_density)
+}
+
+boot_ape_1 <- parSapply(cl, 1:n_boot, boot_fun)
+stopCluster(cl)
+
+# Results
+cat("Bootstrap Mean APE:", mean(boot_ape_1), "\n")
+cat("Bootstrap SE:", sd(boot_ape_1), "\n")
+cat("Bootstrap 95% CI:", quantile(boot_ape_1, c(0.025, 0.975)), "\n")
+```
